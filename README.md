@@ -1,5 +1,5 @@
 # MinecraftSounds
-以java编写的提取mc原版音效的程序  
+以java编写的提取mc原版音效的程序，使用了swing库  
 只需要你的.minecraft目录中已经下载了目标版本的minecraft  
 即可提取目标版本的音效包
 # 版本选择
