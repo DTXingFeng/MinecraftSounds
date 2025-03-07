@@ -9,3 +9,7 @@
 这个东西真的需要[教程](https://www.bilibili.com/video/BV1nY4y1c76h/)吗？
 # 一些提示
 本程序只能提取1.8版本或之后的音效，在更早的版本中，音效的储存方式与现在不同
+
+
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/DTXingFeng/MinecraftSounds.svg?variant=adaptive)](https://starchart.cc/DTXingFeng/MinecraftSounds)
