@@ -1,13 +1,13 @@
 package xyz.xingfeng.minecraft;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.File;
-import java.util.ArrayList;
+import java.util.List;
 
 public class Window extends JFrame {
     /**
@@ -17,7 +17,7 @@ public class Window extends JFrame {
     int fcWidth = 700;
 
     /**
-     * 输入.minecraft所在路径的文本框
+     * 输入.minecraft所在路径、导出路径的文本框
      */
     public static JTextField text = new JTextField();
     public static JTextField text1 = new JTextField();
@@ -31,30 +31,22 @@ public class Window extends JFrame {
     public static JLabel jl4 = new JLabel("正在等待导出");
 
     /**
-     * 确认文件路径按钮
+     * 确认文件路径按钮、导出按钮
      */
     public static JButton but1 = new JButton("确定");
-    static JButton but2 = new JButton("导出");
+    public static JButton but2 = new JButton("导出");
 
     /**
-     * 折叠窗口
+     * 版本下拉框
      */
     public static JComboBox<String> jComboBox = new JComboBox<>();
 
-    /**
-     * 接受返回的数组
-     */
-    public static ArrayList<String> json = new ArrayList<>();
-
-    public Window(){
-        // 获取屏幕宽高
-        Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();
+    public Window() {
         // 设置窗口名称
         this.setTitle("DT_刑风_MINECRAFT原版音效提取器");
-        // 设置窗口位置大小
-        setBounds(scrSize.width / 2 - fcWidth / 2, scrSize.height / 2 - fcHeight / 2, fcWidth, fcHeight);
-        // 是否显示窗口体
-        setVisible(true);
+        // 设置窗口大小并居中
+        setSize(fcWidth, fcHeight);
+        setLocationRelativeTo(null);
         // 窗体不能修改大小
         setResizable(false);
         // 窗体关闭后自动结束后台
@@ -65,95 +57,116 @@ public class Window extends JFrame {
         cn.setLayout(null);
 
         //提示语
-        jl1.setBounds(32,24,200,50);
-        jl1.setFont(new Font("",Font.BOLD,15));
+        jl1.setBounds(32, 24, 200, 50);
+        jl1.setFont(new Font("", Font.BOLD, 15));
         cn.add(jl1);
-        jl2.setBounds(32,70,200,50);
-        jl2.setFont(new Font("",Font.BOLD,15));
+        jl2.setBounds(32, 70, 200, 50);
+        jl2.setFont(new Font("", Font.BOLD, 15));
         cn.add(jl2);
-        jl3.setBounds(32,110,200,50);
-        jl3.setFont(new Font("",Font.BOLD,15));
+        jl3.setBounds(32, 110, 200, 50);
+        jl3.setFont(new Font("", Font.BOLD, 15));
         cn.add(jl3);
-        jl4.setBounds(32,160,200,50);
-        jl4.setFont(new Font("",Font.BOLD,25));
+        jl4.setBounds(32, 160, 640, 50);
+        jl4.setFont(new Font("", Font.BOLD, 25));
         cn.add(jl4);
 
         //路径窗口
-        text.setBounds(190,32,400,30);
+        text.setBounds(190, 32, 400, 30);
         cn.add(text);
-        text1.setBounds(190,120,400,30);
+        text1.setBounds(190, 120, 400, 30);
         cn.add(text1);
-        text1.addKeyListener(new text1());
+        text1.getDocument().addDocumentListener(new ExportPathListener());
         text1.setEnabled(false);
 
         //确认按钮
-        but1.setBounds(598,32,70,30);
+        but1.setBounds(598, 32, 70, 30);
         cn.add(but1);
         but1.addActionListener(new but1());
-        but2.setBounds(330,70,100,40);
+        but2.setBounds(330, 70, 100, 40);
         cn.add(but2);
         but2.setEnabled(false);
         but2.addActionListener(new but2());
 
-        jComboBox.setBounds(190,70,130,40);
+        jComboBox.setBounds(190, 70, 130, 40);
         jComboBox.setBackground(Color.WHITE);
         cn.add(jComboBox);
 
+        // 组件添加完毕后再显示窗口
+        setVisible(true);
     }
 
-    class but1 implements ActionListener{
+    /**
+     * 「确定」：扫描 .minecraft/assets/indexes，填充版本下拉框
+     */
+    class but1 implements ActionListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
             but1.setEnabled(false);
             text.setEnabled(false);
-            File file = new File(text.getText());
-            if (file.exists()){
-                new IsMinecraft(text.getText());
-                for(int i = 0;i < json.size(); i++){
-                    jComboBox.addItem(json.get(i));
+            jComboBox.removeAllItems();
+
+            String mcPath = text.getText().trim();
+            List<String> versions = IsMinecraft.scan(mcPath);
+            if (versions.isEmpty()) {
+                JOptionPane.showOptionDialog(null, "该路径下没有找到任何版本资源索引，请确认输入的是 .minecraft 目录，且启动器已下载过游戏资源",
+                        "错误", JOptionPane.OK_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,
+                        null, new String[]{"确定"}, "确定");
+            } else {
+                for (String version : versions) {
+                    jComboBox.addItem(version);
                 }
                 text1.setEnabled(true);
-            }else {
-                JOptionPane.showOptionDialog(null,"请输入正确的地址",
-                        "错误",JOptionPane.OK_CANCEL_OPTION,JOptionPane.ERROR_MESSAGE,
-                        null,new String[]{"确定"},"确定");
-                but1.setEnabled(true);
-                text.setEnabled(true);
             }
+            but1.setEnabled(true);
+            text.setEnabled(true);
         }
     }
 
-    class but2 implements ActionListener{
+    /**
+     * 「导出」：在后台线程执行复制，避免卡住界面
+     */
+    class but2 implements ActionListener {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            Object version = jComboBox.getSelectedItem();
+            if (version == null) {
+                JOptionPane.showOptionDialog(null, "请先选择要导出的版本",
+                        "提示", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE,
+                        null, new String[]{"确定"}, "确定");
+                return;
+            }
+            but1.setEnabled(false);
+            text.setEnabled(false);
             but2.setEnabled(false);
-            Thread thread = new Thread(new Sounds(jComboBox.getSelectedItem().toString()));
-            Window.jl4.setText("正在读取文件");
-            thread.start();
+            jl4.setText("正在读取文件");
+            new Thread(new Sounds(text.getText().trim(), version.toString(), text1.getText().trim())).start();
         }
     }
 
-    class text1 implements KeyListener{
+    /**
+     * 导出路径变化时，路径为已存在的文件夹才点亮「导出」按钮
+     */
+    class ExportPathListener implements DocumentListener {
 
-        @Override
-        public void keyTyped(KeyEvent e) {
-
+        private void check() {
+            but2.setEnabled(new File(text1.getText().trim()).isDirectory());
         }
 
         @Override
-        public void keyPressed(KeyEvent e) {
-
+        public void insertUpdate(DocumentEvent e) {
+            check();
         }
 
         @Override
-        public void keyReleased(KeyEvent e) {
-            if (new File(text1.getText()).exists()){
-                but2.setEnabled(true);
-            }else {
-                but2.setEnabled(false);
-            }
+        public void removeUpdate(DocumentEvent e) {
+            check();
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            check();
         }
     }
 }

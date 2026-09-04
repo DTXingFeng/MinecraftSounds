@@ -1,6 +1,7 @@
 # MinecraftSounds
 
 [![Release](https://img.shields.io/github/v/release/DTXingFeng/MinecraftSounds)](https://github.com/DTXingFeng/MinecraftSounds/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/DTXingFeng/MinecraftSounds/build.yml?branch=main)](https://github.com/DTXingFeng/MinecraftSounds/actions/workflows/build.yml)
 [![License](https://img.shields.io/github/license/DTXingFeng/MinecraftSounds)](./LICENSE)
 [![Java](https://img.shields.io/badge/Java-8%2B-orange)](https://www.java.com/)
 
@@ -32,7 +33,7 @@
 3. 双击运行，或在命令行执行：
 
    ```bash
-   java -jar MinecraftSounds-v1.1.jar
+   java -jar MinecraftSounds.jar
    ```
 
 4. 在第一个输入框填写 `.minecraft` 目录路径（例如 `C:\Users\<你>\AppData\Roaming\.minecraft`）并点击「确定」；
@@ -61,9 +62,12 @@ Minecraft 1.8+ stores every asset in `assets/objects/` named by its SHA-1 hash, 
 ```bash
 git clone https://github.com/DTXingFeng/MinecraftSounds.git
 cd MinecraftSounds
-mkdir build && javac -d build src/Main.java src/xyz/xingfeng/minecraft/*.java
+mkdir build && javac -encoding UTF-8 -d build src/Main.java src/xyz/xingfeng/minecraft/*.java
 jar cfm MinecraftSounds.jar src/META-INF/MANIFEST.MF -C build .
 ```
+
+> 源码为 UTF-8 编码，`javac` 时请务必带上 `-encoding UTF-8`，否则中文 Windows（默认 GBK）下会编译失败。
+> 推送代码后 GitHub Actions 会自动构建 jar（Artifacts），推送 `v*` 标签时会自动附带 jar 创建 Release。
 
 ## 常见问题 / FAQ
 
@@ -73,6 +77,11 @@ jar cfm MinecraftSounds.jar src/META-INF/MANIFEST.MF -C build .
   导出路径必须是一个已经存在的文件夹，输入正确路径后按钮会自动点亮。
 - **提取出来的文件能商用吗？**
   音效版权归 Mojang 所有，导出内容仅建议用于个人学习、Mod / 资源包开发等合理用途，请遵守 Minecraft EULA。
+
+## 更新日志 / Changelog
+
+- **v1.2**：修复 macOS / Linux 上无法运行的问题（路径分隔符写死为 `\`）；版本下拉框改为按新到旧自然排序（1.10 不再排在 1.9 前面），且支持 1.19.3+ 的编号索引按数值排序；输入非 .minecraft 目录不再卡死界面；导出失败会弹窗提示并自动恢复界面；完成时显示因未下载而跳过的文件数量；新增 GitHub Actions 自动构建。
+- **v1.1**：首个公开版本。
 
 ## 许可证 / License
 

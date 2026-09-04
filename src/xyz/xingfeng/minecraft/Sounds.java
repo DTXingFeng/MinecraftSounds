@@ -1,90 +1,92 @@
 package xyz.xingfeng.minecraft;
 
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import javax.swing.*;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class Sounds implements Runnable{
-    String path;
-    String soundsPath;
-    String exportPath;
-    public Sounds(String path){
-        this.path = Window.text.getText() + "\\assets\\indexes\\" + path + ".json";
-        this.soundsPath = Window.text.getText() + "\\assets\\objects\\";
-        this.exportPath = Window.text1.getText();
+/**
+ * 读取资源索引，把 assets/objects 里按 SHA-1 哈希存放的音效复制回原始路径
+ */
+public class Sounds implements Runnable {
+
+    /**
+     * 匹配索引里形如 "minecraft/sounds/xxx": {"hash": "40位十六进制", ...} 的音效条目
+     */
+    private static final Pattern SOUND_ENTRY = Pattern.compile(
+            "\"([^\"]*minecraft/sounds[^\"]*)\"\\s*:\\s*\\{[^{}]*?\"hash\"\\s*:\\s*\"([0-9a-fA-F]{40})\"");
+
+    private final Path indexFile;
+    private final Path objectsDir;
+    private final Path exportDir;
+
+    public Sounds(String mcRoot, String version, String exportPath) {
+        this.indexFile = Paths.get(mcRoot, "assets", "indexes", version + ".json");
+        this.objectsDir = Paths.get(mcRoot, "assets", "objects");
+        this.exportDir = Paths.get(exportPath);
     }
+
     @Override
-    public void run(){
-
-        ArrayList<String> oggPath = new ArrayList<>();
-        ArrayList<String> hash = new ArrayList<>();
-        FileDo fileDo = new FileDo(new File(path));
+    public void run() {
         try {
-            String json = fileDo.copy();
-            while (true){
-                if (json.contains("minecraft/sounds")){
-                    json = json.substring(json.indexOf("minecraft/sounds"));
-                    //获取提取后的路径
-                    oggPath.add(json.substring(json.indexOf("minecraft/sounds"),json.indexOf("\"")));
-                    //获取哈希值
-                    int num = json.indexOf(",");
-                    hash.add(json.substring(json.indexOf("hash") + 8, json.indexOf(",") - 1));
-                    json = json.substring(num);
-                }else {
-                    break;
-                }
-            }
-            //开始复制并重命名
-            for (int i = 0; i < oggPath.size(); i++) {
-                Window.jl4.setText(i + "/" + oggPath.size());
-                //获取加密文件位置
-                String MD5ogg = soundsPath + "\\" + hash.get(i).substring(0,2) + "\\" + hash.get(i);
-                //文件解密后的位置以及命名
-                String noMD5ogg = exportPath + "\\" + oggPath.get(i);
-                File file = new File(MD5ogg);
-                System.out.println(MD5ogg + "\t" + noMD5ogg);
-                if (file.exists()){
-                    File file1 = new File(noMD5ogg.substring(0,noMD5ogg.lastIndexOf("/")));
-                    if (file1.exists()){
-                        FileInputStream in = new FileInputStream(new File(MD5ogg));
-                        FileOutputStream out = new FileOutputStream(new File(noMD5ogg));
-                        byte[] buff = new byte[10240]; //限制大小
-                        int n = 0;
-                        while ((n = in.read(buff)) != -1) {
-                            out.write(buff, 0, n);
-                        }
-                        out.flush();
-                        in.close();
-                        out.close();
-                    }else {
-                        //没有创建文件就生成再复制
-                        file1.mkdirs();
-                        FileInputStream in = new FileInputStream(new File(MD5ogg));
-                        FileOutputStream out = new FileOutputStream(new File(noMD5ogg));
-                        byte[] buff = new byte[10240]; //限制大小
-                        int n = 0;
-                        while ((n = in.read(buff)) != -1) {
-                            out.write(buff, 0, n);
-                        }
-                        out.flush();
-                        in.close();
-                        out.close();
-                    }
-                }
-
-            }
-            Window.jl4.setText("完成!");
-            Window.but1.setEnabled(true);
-            Window.text.setText("");
-            Window.text1.setText("");
-            Window.text1.setEnabled(false);
-            Window.but2.setEnabled(false);
-            Window.jComboBox.removeAllItems();
-        } catch (IOException e) {
+            export();
+            setProgress("完成!");
+        } catch (Exception e) {
             e.printStackTrace();
+            String message = e.getMessage() == null ? e.toString() : e.getMessage();
+            SwingUtilities.invokeLater(() -> {
+                Window.jl4.setText("导出失败");
+                JOptionPane.showMessageDialog(null, "导出失败：" + message, "错误", JOptionPane.ERROR_MESSAGE);
+            });
+        } finally {
+            // 无论成功失败都恢复界面，让用户可以直接重试
+            SwingUtilities.invokeLater(() -> {
+                Window.text.setEnabled(true);
+                Window.but1.setEnabled(true);
+                Window.text1.setText("");
+                Window.but2.setEnabled(false);
+            });
         }
+    }
+
+    private void export() throws IOException {
+        String json = new String(Files.readAllBytes(indexFile), StandardCharsets.UTF_8);
+
+        List<String> names = new ArrayList<>();
+        List<String> hashes = new ArrayList<>();
+        Matcher matcher = SOUND_ENTRY.matcher(json);
+        while (matcher.find()) {
+            names.add(matcher.group(1));
+            hashes.add(matcher.group(2));
+        }
+
+        int skipped = 0;
+        for (int i = 0; i < names.size(); i++) {
+            setProgress(i + "/" + names.size());
+            Path source = objectsDir.resolve(hashes.get(i).substring(0, 2)).resolve(hashes.get(i));
+            if (!Files.isRegularFile(source)) {
+                // 该资源尚未被启动器下载
+                skipped++;
+                continue;
+            }
+            Path target = exportDir.resolve(names.get(i));
+            Files.createDirectories(target.getParent());
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        setProgress(skipped > 0 ? "完成! (跳过 " + skipped + " 个未下载的文件)" : "完成!");
+    }
+
+    /**
+     * Swing 组件只能在事件调度线程上更新
+     */
+    private void setProgress(String s) {
+        SwingUtilities.invokeLater(() -> Window.jl4.setText(s));
     }
 }

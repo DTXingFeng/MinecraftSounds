@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+
+      - name: Build jar
+        run: |
+          mkdir -p build
+          javac -encoding UTF-8 -d build $(find src -name '*.java')
+          jar cfm MinecraftSounds.jar src/META-INF/MANIFEST.MF -C build .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MinecraftSounds
+          path: MinecraftSounds.jar
+
+      - name: Attach jar to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: MinecraftSounds.jar
