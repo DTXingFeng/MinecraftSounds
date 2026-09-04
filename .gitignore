@@ -11,3 +11,7 @@ build/
 # OS
 Thumbs.db
 .DS_Store
+
+# jpackage 打包输出
+app/
+dist/

@@ -28,7 +28,14 @@
 
 ## 使用方法 / Usage
 
-1. 从 [Releases](https://github.com/DTXingFeng/MinecraftSounds/releases) 下载最新的 `MinecraftSounds-*.jar`；
+**方式一：Windows 免安装版（推荐，无需 Java 环境）**
+
+1. 从 [Releases](https://github.com/DTXingFeng/MinecraftSounds/releases) 下载 `MinecraftSounds-*-windows-x64.zip`；
+2. 解压到任意目录，双击运行 `MinecraftSounds.exe` 即可（已内置运行时，约 45 MB）。
+
+**方式二：Jar（全平台通用，需 Java 8 或更高版本）**
+
+1. 从 [Releases](https://github.com/DTXingFeng/MinecraftSounds/releases) 下载最新的 `MinecraftSounds.jar`；
 2. 确保已安装 **Java 8 或更高版本**（[下载地址](https://www.java.com/download/)）；
 3. 双击运行，或在命令行执行：
 
@@ -36,9 +43,11 @@
    java -jar MinecraftSounds.jar
    ```
 
-4. 在第一个输入框填写 `.minecraft` 目录路径（例如 `C:\Users\<你>\AppData\Roaming\.minecraft`）并点击「确定」；
-5. 在下拉框中选择要导出的游戏版本；
-6. 填写导出目标文件夹（需已存在），点击「导出」，等待进度显示「完成!」即可。
+**接下来的步骤（两种方式相同）：**
+
+1. 在第一个输入框填写 `.minecraft` 目录路径（例如 `C:\Users\<你>\AppData\Roaming\.minecraft`）并点击「确定」；
+2. 在下拉框中选择要导出的游戏版本；
+3. 填写导出目标文件夹（需已存在），点击「导出」，等待进度显示「完成!」即可。
 
 > English users: fill in your `.minecraft` path, press the left button, pick a version from the dropdown, type an existing export folder, then press the export button (「导出」). The progress label shows `完成!` when finished.
 
@@ -80,7 +89,7 @@ jar cfm MinecraftSounds.jar src/META-INF/MANIFEST.MF -C build .
 
 ## 更新日志 / Changelog
 
-- **v1.2**：修复 macOS / Linux 上无法运行的问题（路径分隔符写死为 `\`）；版本下拉框改为按新到旧自然排序（1.10 不再排在 1.9 前面），且支持 1.19.3+ 的编号索引按数值排序；输入非 .minecraft 目录不再卡死界面；导出失败会弹窗提示并自动恢复界面；完成时显示因未下载而跳过的文件数量；新增 GitHub Actions 自动构建。
+- **v1.2**：修复 macOS / Linux 上无法运行的问题（路径分隔符写死为 `\`）；版本下拉框改为按新到旧自然排序（1.10 不再排在 1.9 前面），且支持 1.19.3+ 的编号索引按数值排序；输入非 .minecraft 目录不再卡死界面；导出失败会弹窗提示并自动恢复界面；完成时显示因未下载而跳过的文件数量；新增 GitHub Actions 自动构建；新增 Windows 免安装版（jpackage 打包，内置运行时，无需安装 Java）。
 - **v1.1**：首个公开版本。
 
 ## 许可证 / License

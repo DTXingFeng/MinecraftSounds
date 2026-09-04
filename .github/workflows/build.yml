@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  jar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -30,11 +30,67 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
-          name: MinecraftSounds
+          name: MinecraftSounds-jar
           path: MinecraftSounds.jar
 
-      - name: Attach jar to release
-        if: startsWith(github.ref, 'refs/tags/')
+  windows-exe:
+    # 用 jpackage 把 JRE 一起打进 exe，用户无需安装 Java
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build jar
+        shell: bash
+        run: |
+          mkdir -p build
+          javac -encoding UTF-8 --release 8 -d build $(find src -name '*.java')
+          jar cfm MinecraftSounds.jar src/META-INF/MANIFEST.MF -C build .
+
+      - name: Package self-contained exe
+        shell: bash
+        run: |
+          VERSION="0.0.0"
+          if [[ "$GITHUB_REF_NAME" == v* ]]; then VERSION="${GITHUB_REF_NAME#v}"; fi
+          mkdir app
+          mv MinecraftSounds.jar app/
+          jpackage --type app-image \
+            --name MinecraftSounds \
+            --app-version "$VERSION" \
+            --icon packaging/icon.ico \
+            --input app \
+            --main-jar MinecraftSounds.jar \
+            --dest dist \
+            --add-modules java.desktop \
+            --jlink-options "--strip-debug --no-man-pages --no-header-files --compress=zip-6"
+
+      - name: Zip app image
+        shell: pwsh
+        run: Compress-Archive -Path dist/MinecraftSounds -DestinationPath "MinecraftSounds-${{ github.ref_name }}-windows-x64.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: MinecraftSounds-windows-x64
+          path: MinecraftSounds-*-windows-x64.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [jar, windows-exe]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          merge-multiple: true
+          path: dist
+
+      - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
-          files: MinecraftSounds.jar
+          files: dist/*
